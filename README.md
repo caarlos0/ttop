@@ -1,8 +1,10 @@
 # ttop
 
-A tiny terminal UI that lists the processes in every **tmux** pane — `htop`,
-scoped to your tmux. Sessions are tabs; each window's processes form a tree,
-sorted by CPU or memory (busiest first).
+> `pstree` meets `top`, tmux-aware.
+
+The live process tree running in every tmux pane — sessions as tabs, each
+window's processes nested by parent/child and ranked by CPU or memory
+(busiest first).
 
 ```
  Sessions:  ● dev │   infra │   notes
