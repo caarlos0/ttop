@@ -48,17 +48,19 @@ outside too).
 
 | Key | Action |
 | --- | --- |
-| `↑` / `↓` | Move selection |
-| `←` / `→`, `h` / `l`, `Tab` / `Shift-Tab` | Switch session tab |
+| `j` / `k`, `↓` / `↑` | Move selection |
+| `h` / `l`, `←` / `→`, `Tab` / `Shift-Tab` | Switch session tab |
+| `g` / `G`, `Home` / `End` | Jump to top / bottom |
 | `Enter` / `Space` | Fold / unfold a window |
 | `/` | Filter by command or PID — `Enter` applies, `Esc` clears |
 | `P` | Sort by CPU |
 | `M` | Sort by memory |
-| `k` | Send `SIGTERM` to the selected process |
+| `t` | Send `SIGTERM` to the selected process |
 | `x` | Send `SIGKILL` to the selected process |
 | `q` / `Ctrl-C` | Quit |
 
-Sort and kill keys follow `top`/`htop` conventions (`P` = CPU, `M` = memory).
+Navigation is vim-style (`hjkl`, `g`/`G`); arrow/Home/End keys work too. Sort keys
+follow `top` conventions (`P` = CPU, `M` = memory).
 
 ## How it works
 

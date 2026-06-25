@@ -52,18 +52,19 @@ Data flows once per ~2s tick: **tmux structure + sysinfo processes → model tre
 
 | Key | Action |
 | --- | --- |
-| `↑` / `↓` | Move selection |
-| `←` / `→`, `h` / `l`, `Tab` / `Shift-Tab` | Switch session tab |
+| `j` / `k`, `↓` / `↑` | Move selection |
+| `h` / `l`, `←` / `→`, `Tab` / `Shift-Tab` | Switch session tab |
+| `g` / `G`, `Home` / `End` | Jump to top / bottom |
 | `Enter` / `Space` | Fold / unfold a window |
 | `/` | Filter (command or PID); `Enter` applies, `Esc` clears |
 | `P` / `p` | Sort by CPU |
 | `M` / `m` | Sort by memory |
-| `k` | `SIGTERM` the selected process |
+| `t` | `SIGTERM` the selected process |
 | `x` | `SIGKILL` the selected process |
 | `q` / `Ctrl-C` | Quit |
 
-`P`/`M` follow `top` conventions. Vertical nav is arrows only (not `j`/`k`)
-because `k` is bound to SIGTERM.
+Navigation is vim-style (`hjkl`, `g`/`G`); arrows/Home/End also work. `P`/`M`
+follow `top` conventions. Kills moved off `k` (now "up") to `t`/`x`.
 
 ## Build / lint / run
 

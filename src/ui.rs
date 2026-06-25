@@ -15,7 +15,7 @@ const DIM: Color = Color::Indexed(245);
 const DIM_SEL: Color = Color::Indexed(252);
 const SELECT_BG: Color = Color::Indexed(238);
 
-const HELP: &str = "↑↓ move · ←→/Tab session · Enter fold · / filter · P cpu · M mem · k SIGTERM · x SIGKILL · q quit";
+const HELP: &str = "j/k move · h/l session · g/G top/bottom · Enter fold · / filter · P cpu · M mem · t SIGTERM · x SIGKILL · q quit";
 
 pub fn draw(f: &mut Frame, app: &App) {
     let chunks = Layout::vertical([

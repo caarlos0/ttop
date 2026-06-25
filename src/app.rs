@@ -217,17 +217,21 @@ impl App {
                 self.should_quit = true
             }
             KeyCode::Char('q') => self.should_quit = true,
-            KeyCode::Up => self.selected = self.selected.saturating_sub(1),
-            KeyCode::Down => self.selected += 1,
+            KeyCode::Up | KeyCode::Char('k') => self.selected = self.selected.saturating_sub(1),
+            KeyCode::Down | KeyCode::Char('j') => self.selected += 1,
             KeyCode::Left | KeyCode::Char('h') | KeyCode::BackTab => self.prev_tab(),
             KeyCode::Right | KeyCode::Char('l') | KeyCode::Tab => self.next_tab(),
+            KeyCode::Home | KeyCode::Char('g') => self.selected = 0,
+            KeyCode::End | KeyCode::Char('G') => {
+                self.selected = self.rows().len().saturating_sub(1)
+            }
             KeyCode::Enter | KeyCode::Char(' ') => self.toggle_fold(),
             KeyCode::Char('/') => self.filtering = true,
             KeyCode::Esc => self.filter.clear(),
             KeyCode::Char('p') | KeyCode::Char('P') => self.sort = Sort::Cpu,
             KeyCode::Char('m') | KeyCode::Char('M') => self.sort = Sort::Mem,
             KeyCode::Char('x') => self.kill_selected(Signal::Kill, "SIGKILL"),
-            KeyCode::Char('k') => self.kill_selected(Signal::Term, "SIGTERM"),
+            KeyCode::Char('t') => self.kill_selected(Signal::Term, "SIGTERM"),
             _ => {}
         }
         self.clamp();
