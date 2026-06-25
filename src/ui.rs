@@ -8,6 +8,13 @@ use ratatui::widgets::{List, ListItem, ListState, Paragraph, Tabs};
 
 use crate::app::{App, Row, Sort};
 
+// Palette. Secondary ("dim") text needs enough contrast on a black background;
+// `DIM_SEL` is a brighter variant used on the highlighted row so it stays
+// readable on top of the selection bar.
+const DIM: Color = Color::Indexed(245);
+const DIM_SEL: Color = Color::Indexed(252);
+const SELECT_BG: Color = Color::Indexed(238);
+
 const HELP: &str = "↑↓ move · ←→/Tab session · Enter fold · / filter · P cpu · M mem · k SIGTERM · x SIGKILL · q quit";
 
 pub fn draw(f: &mut Frame, app: &App) {
@@ -42,7 +49,7 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
         .collect();
     let tabs = Tabs::new(titles)
         .select(app.selected_tab)
-        .style(Style::default().fg(Color::DarkGray))
+        .style(Style::default().fg(DIM))
         .highlight_style(
             Style::default()
                 .fg(Color::White)
@@ -65,7 +72,7 @@ fn draw_body(f: &mut Frame, app: &App, area: Rect) {
         ),
         Span::styled(
             format!("   (sort: {sort_label} ▼)"),
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(DIM),
         ),
     ]);
     f.render_widget(Paragraph::new(header), parts[0]);
@@ -80,7 +87,7 @@ fn draw_body(f: &mut Frame, app: &App, area: Rect) {
         f.render_widget(
             Paragraph::new(Line::from(Span::styled(
                 format!("  {msg}"),
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(DIM),
             ))),
             parts[1],
         );
@@ -88,20 +95,22 @@ fn draw_body(f: &mut Frame, app: &App, area: Rect) {
     }
 
     let width = parts[1].width as usize;
-    let items: Vec<ListItem> = rows.iter().map(|r| render_row(r, width)).collect();
+    let sel = app.selected.min(rows.len().saturating_sub(1));
+    let items: Vec<ListItem> = rows
+        .iter()
+        .enumerate()
+        .map(|(i, r)| render_row(r, width, i == sel))
+        .collect();
     // A uniform background bar (not REVERSED) so per-column colors are kept and
     // the whole selected row gets one consistent highlight.
-    let list = List::new(items).highlight_style(
-        Style::default()
-            .bg(Color::Indexed(238))
-            .add_modifier(Modifier::BOLD),
-    );
+    let list = List::new(items).highlight_style(Style::default().bg(SELECT_BG));
     let mut state = ListState::default();
-    state.select(Some(app.selected.min(rows.len().saturating_sub(1))));
+    state.select(Some(sel));
     f.render_stateful_widget(list, parts[1], &mut state);
 }
 
-fn render_row(row: &Row, width: usize) -> ListItem<'static> {
+fn render_row(row: &Row, width: usize, selected: bool) -> ListItem<'static> {
+    let dim = Style::default().fg(if selected { DIM_SEL } else { DIM });
     match row {
         Row::Window {
             index,
@@ -128,7 +137,7 @@ fn render_row(row: &Row, width: usize) -> ListItem<'static> {
                 Span::styled(format!("[{index}] {name}"), name_style),
                 Span::styled(
                     format!("   {count} proc · {cpu:.1}% · {}", format_bytes(*mem)),
-                    Style::default().fg(Color::DarkGray),
+                    dim,
                 ),
             ]);
             ListItem::new(line)
@@ -139,16 +148,13 @@ fn render_row(row: &Row, width: usize) -> ListItem<'static> {
             let max_cmd = avail.saturating_sub(prefix.chars().count()).max(4);
             let line = Line::from(vec![
                 Span::raw("  "),
-                Span::styled(
-                    format!("{:>7}", p.pid),
-                    Style::default().fg(Color::DarkGray),
-                ),
+                Span::styled(format!("{:>7}", p.pid), dim),
                 Span::raw("  "),
                 Span::styled(format!("{:>6.1}", p.cpu), cpu_style(p.cpu)),
                 Span::raw("  "),
                 Span::styled(format!("{:>8}", format_bytes(p.mem)), mem_style(p.mem)),
                 Span::raw("  "),
-                Span::styled(prefix.clone(), Style::default().fg(Color::DarkGray)),
+                Span::styled(prefix.clone(), dim),
                 Span::raw(truncate(&p.command, max_cmd)),
             ]);
             ListItem::new(line)
@@ -157,7 +163,7 @@ fn render_row(row: &Row, width: usize) -> ListItem<'static> {
 }
 
 fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
-    let dim = Style::default().fg(Color::DarkGray);
+    let dim = Style::default().fg(DIM);
     let line = if app.filtering {
         Line::from(vec![
             Span::styled(
