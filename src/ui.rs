@@ -100,7 +100,13 @@ fn draw_body(f: &mut Frame, app: &App, area: Rect) {
 
     let width = parts[1].width as usize;
     let items: Vec<ListItem> = rows.iter().map(|r| render_row(r, width)).collect();
-    let list = List::new(items).highlight_style(Style::default().add_modifier(Modifier::REVERSED));
+    // A uniform background bar (not REVERSED) so per-column colors are kept and
+    // the whole selected row gets one consistent highlight.
+    let list = List::new(items).highlight_style(
+        Style::default()
+            .bg(Color::Indexed(238))
+            .add_modifier(Modifier::BOLD),
+    );
     let mut state = ListState::default();
     state.select(Some(app.selected.min(rows.len().saturating_sub(1))));
     f.render_stateful_widget(list, parts[1], &mut state);
