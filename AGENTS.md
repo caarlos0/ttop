@@ -31,7 +31,7 @@ Data flows once per ~2s tick: **tmux structure + sysinfo processes → model tre
 
 | File | Responsibility |
 | --- | --- |
-| `src/main.rs` | Entry point, terminal setup/teardown, event loop. `TICK = 2000ms`: redraw, poll a key (`event::poll`/`read`, Press only), dispatch to `App::on_key`, and `App::refresh()` every tick. |
+| `src/main.rs` | Entry point, terminal setup/teardown, event loop. `TICK = 2000ms`: redraw, poll a key (`event::poll`/`read`, Press only), dispatch to `App::on_key`, and `App::refresh()` every tick. `enable_enhanced_keys()` pushes `DISAMBIGUATE_ESCAPE_CODES` (when supported) so Shift+Enter is distinguishable from Enter. |
 | `src/tmux.rs` | Shell out to `tmux` (`display-message`, `list-sessions`, `list-panes -a`). `query() -> TmuxInfo`. Structs: `Pane`, `TmuxInfo` (panes, session order, current session). Tab-separated `-F` format parsing. |
 | `src/model.rs` | `Collector` owns the `sysinfo::System` (so CPU% is computed across refreshes). `build_sessions(&Collector, &TmuxInfo) -> Vec<Session>`. Structs: `Proc`, `Window`, `Session`. Each process is attached to the window of its **nearest pane-root ancestor** (walk parent chain until a `pane_pid` is hit). `command_string` joins argv, falling back to the process name. |
 | `src/app.rs` | All state and logic. `App` (sessions, selected tab, sort, collapsed set, filter, selection, status), `Sort` (`Cpu`/`Mem`), `Row` (`Window`/`Proc`, where `Proc` carries a rendered tree `prefix`). `rows()` builds, per window, a parent→child process **tree** (`cmp_proc` sorts siblings, `emit_tree` draws the `├─`/`└─`/`│` branches), then orders the windows themselves by their total usage (`cmp_usage`, busiest first) before flattening to visible rows. `on_key` holds the **keybinding map**. Actions: tab switch, fold, filter input, `kill_selected`. |
@@ -58,6 +58,7 @@ Data flows once per ~2s tick: **tmux structure + sysinfo processes → model tre
 | `h` / `l`, `←` / `→`, `Tab` / `Shift-Tab` | Switch session tab |
 | `g` / `G`, `Home` / `End` | Jump to top / bottom |
 | `Enter` / `Space` | Fold / unfold a window |
+| `Shift-Enter` | Fold / unfold **all** windows |
 | `/` | Filter (command or PID); `Enter` applies, `Esc` clears |
 | `P` / `p` | Sort by CPU |
 | `M` / `m` | Sort by memory |
@@ -105,6 +106,10 @@ tests via `cargo test`), and remove them afterward unless they're worth keeping.
   their own `argv[0]` (a sysctl quirk). Normal processes are unaffected.
 - Login shells appear as `-fish` etc.; this is expected (they really are pane
   processes).
+- **Shift+Enter needs the keyboard-enhancement protocol.** `main.rs` requests it,
+  but the terminal must support it and — crucially — inside tmux you need
+  `set -g extended-keys on`, otherwise tmux collapses Shift+Enter to plain Enter
+  (so it just folds one window).
 
 ## CI & release
 

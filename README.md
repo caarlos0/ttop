@@ -36,7 +36,7 @@ Vim-style; arrows, `Home`/`End` and `PageUp`/`PageDown` work too.
 | --- | --- |
 | `j` / `k` | move (`Ctrl-d`/`Ctrl-u` half-page, `g`/`G` top/bottom) |
 | `h` / `l`, `Tab` | switch session |
-| `Enter` | fold / unfold window |
+| `Enter` | fold / unfold window (`⇧Enter` for all) |
 | `/` | filter by command or PID |
 | `P` / `M` | sort by CPU / memory |
 | `t` / `x` | SIGTERM / SIGKILL the selected process |
@@ -44,3 +44,6 @@ Vim-style; arrows, `Home`/`End` and `PageUp`/`PageDown` work too.
 
 CPU% is sampled between ~2s refreshes — the first frame reads ~0%, and a busy
 process can exceed 100% on multiple cores.
+
+`⇧Enter` needs a terminal with keyboard-enhancement support; inside tmux, also
+`set -g extended-keys on`.

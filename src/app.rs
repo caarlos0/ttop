@@ -233,6 +233,7 @@ impl App {
             KeyCode::End | KeyCode::Char('G') => {
                 self.selected = self.rows().len().saturating_sub(1)
             }
+            KeyCode::Enter if key.modifiers.contains(KeyModifiers::SHIFT) => self.toggle_fold_all(),
             KeyCode::Enter | KeyCode::Char(' ') => self.toggle_fold(),
             KeyCode::Char('/') => self.filtering = true,
             KeyCode::Esc => self.filter.clear(),
@@ -287,6 +288,27 @@ impl App {
             self.collapsed.remove(&key);
         } else {
             self.collapsed.insert(key);
+        }
+    }
+
+    /// Collapse every window in the session, or expand them all if they already
+    /// are collapsed.
+    fn toggle_fold_all(&mut self) {
+        let Some(session) = self.sessions.get(self.selected_tab) else {
+            return;
+        };
+        let keys: Vec<(String, u32)> = session
+            .windows
+            .iter()
+            .map(|w| (session.name.clone(), w.index))
+            .collect();
+        let all_collapsed = keys.iter().all(|k| self.collapsed.contains(k));
+        for k in keys {
+            if all_collapsed {
+                self.collapsed.remove(&k);
+            } else {
+                self.collapsed.insert(k);
+            }
         }
     }
 
