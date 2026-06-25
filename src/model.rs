@@ -83,16 +83,14 @@ pub fn build_sessions(collector: &Collector, info: &TmuxInfo) -> Vec<Session> {
 
     // pane root pid -> (session, window index)
     let mut pane_root: HashMap<u32, (String, u32)> = HashMap::new();
-    // (session, window index) -> (window name, active), keeping first-seen order.
+    // (session, window index) -> (window name, active). First pane wins; windows
+    // are re-sorted by index below, so map order doesn't matter.
     let mut win_meta: HashMap<(String, u32), (String, bool)> = HashMap::new();
-    let mut win_order: Vec<(String, u32)> = Vec::new();
     for p in &info.panes {
         pane_root.insert(p.pane_pid, (p.session.clone(), p.window_index));
-        let key = (p.session.clone(), p.window_index);
-        if !win_meta.contains_key(&key) {
-            win_meta.insert(key.clone(), (p.window_name.clone(), p.window_active));
-            win_order.push(key);
-        }
+        win_meta
+            .entry((p.session.clone(), p.window_index))
+            .or_insert((p.window_name.clone(), p.window_active));
     }
 
     let mut buckets: HashMap<(String, u32), Vec<Proc>> = HashMap::new();
@@ -125,18 +123,14 @@ pub fn build_sessions(collector: &Collector, info: &TmuxInfo) -> Vec<Session> {
 
     let mut sessions = Vec::new();
     for sname in &info.sessions {
-        let mut windows: Vec<Window> = win_order
+        let mut windows: Vec<Window> = win_meta
             .iter()
-            .filter(|(s, _)| s == sname)
-            .map(|key| {
-                let (name, active) = win_meta.get(key).cloned().unwrap_or_default();
-                let procs = buckets.remove(key).unwrap_or_default();
-                Window {
-                    index: key.1,
-                    name,
-                    active,
-                    procs,
-                }
+            .filter(|((s, _), _)| s == sname)
+            .map(|((_, idx), (name, active))| Window {
+                index: *idx,
+                name: name.clone(),
+                active: *active,
+                procs: buckets.remove(&(sname.clone(), *idx)).unwrap_or_default(),
             })
             .collect();
         windows.sort_by_key(|w| w.index);

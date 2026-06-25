@@ -140,15 +140,21 @@ impl App {
             };
             let included = |pid: u32| keep.as_ref().is_none_or(|k| k.contains(&pid));
 
-            // Build the parent -> children forest over the included processes.
-            // A process is a root when its parent isn't part of this window (i.e.
-            // it is one of the pane's top-level processes).
+            // Build the parent -> children forest over the included processes
+            // (a process is a root when its parent isn't part of this window),
+            // totalling the window's metrics in the same pass.
             let mut children: HashMap<u32, Vec<u32>> = HashMap::new();
             let mut roots: Vec<u32> = Vec::new();
+            let mut count = 0usize;
+            let mut cpu = 0.0f32;
+            let mut mem = 0u64;
             for p in &w.procs {
                 if !included(p.pid) {
                     continue;
                 }
+                count += 1;
+                cpu += p.cpu;
+                mem += p.mem;
                 if by_pid.contains_key(&p.ppid) && included(p.ppid) {
                     children.entry(p.ppid).or_default().push(p.pid);
                 } else {
@@ -162,19 +168,6 @@ impl App {
 
             let key = (session.name.clone(), w.index);
             let collapsed = !filtering && self.collapsed.contains(&key);
-            let cpu: f32 = w
-                .procs
-                .iter()
-                .filter(|p| included(p.pid))
-                .map(|p| p.cpu)
-                .sum();
-            let mem: u64 = w
-                .procs
-                .iter()
-                .filter(|p| included(p.pid))
-                .map(|p| p.mem)
-                .sum();
-            let count = w.procs.iter().filter(|p| included(p.pid)).count();
             out.push(Row::Window {
                 key,
                 index: w.index,
@@ -216,19 +209,16 @@ impl App {
             return;
         }
 
+        let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
         match key.code {
-            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.should_quit = true
-            }
+            KeyCode::Char('c') if ctrl => self.should_quit = true,
             KeyCode::Char('q') => self.should_quit = true,
             KeyCode::Up | KeyCode::Char('k') => self.selected = self.selected.saturating_sub(1),
             KeyCode::Down | KeyCode::Char('j') => self.selected += 1,
-            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+            KeyCode::Char('u') if ctrl => {
                 self.selected = self.selected.saturating_sub(self.half_page())
             }
-            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.selected += self.half_page()
-            }
+            KeyCode::Char('d') if ctrl => self.selected += self.half_page(),
             KeyCode::PageUp => self.selected = self.selected.saturating_sub(self.viewport.get()),
             KeyCode::PageDown => self.selected += self.viewport.get().max(1),
             KeyCode::Left | KeyCode::Char('h') | KeyCode::BackTab => self.prev_tab(),
@@ -283,28 +273,24 @@ impl App {
 
     fn toggle_fold(&mut self) {
         let rows = self.rows();
-        if let Some(Row::Window { key, collapsed, .. }) = rows.get(self.selected) {
-            let key = key.clone();
-            let was = *collapsed;
-            drop(rows);
-            if was {
-                self.collapsed.remove(&key);
-            } else {
-                self.collapsed.insert(key);
-            }
+        let Some(Row::Window { key, collapsed, .. }) = rows.get(self.selected) else {
+            return;
+        };
+        let (key, was) = (key.clone(), *collapsed);
+        if was {
+            self.collapsed.remove(&key);
+        } else {
+            self.collapsed.insert(key);
         }
     }
 
     fn kill_selected(&mut self, sig: Signal, label: &str) {
         let rows = self.rows();
-        let target = match rows.get(self.selected) {
-            Some(Row::Proc { proc, .. }) => Some((proc.pid, short(&proc.command))),
-            _ => None,
-        };
-        drop(rows);
-        let Some((pid, name)) = target else {
+        let Some(Row::Proc { proc, .. }) = rows.get(self.selected) else {
             return;
         };
+        let pid = proc.pid;
+        let name = short(&proc.command);
         let result = self.collector.process(pid).map(|p| p.kill_with(sig));
         self.status = Some(match result {
             Some(Some(true)) => format!("Sent {label} → {pid} {name}"),

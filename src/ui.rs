@@ -142,15 +142,8 @@ fn render_row(row: &Row, width: usize, selected: bool) -> ListItem<'static> {
             ..
         } => {
             let arrow = if *collapsed { "▸ " } else { "▾ " };
-            let name_style = if *active {
-                Style::default()
-                    .fg(Color::Green)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
-            };
+            let name_color = if *active { Color::Green } else { Color::Cyan };
+            let name_style = Style::default().fg(name_color).add_modifier(Modifier::BOLD);
             let line = Line::from(vec![
                 Span::styled(arrow, Style::default().fg(Color::Cyan)),
                 Span::styled(format!("[{index}] {name}"), name_style),
