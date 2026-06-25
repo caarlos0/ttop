@@ -53,6 +53,8 @@ Data flows once per ~2s tick: **tmux structure + sysinfo processes → model tre
 | Key | Action |
 | --- | --- |
 | `j` / `k`, `↓` / `↑` | Move selection |
+| `Ctrl-d` / `Ctrl-u` | Half-page down / up |
+| `PgDn` / `PgUp` | Page down / up |
 | `h` / `l`, `←` / `→`, `Tab` / `Shift-Tab` | Switch session tab |
 | `g` / `G`, `Home` / `End` | Jump to top / bottom |
 | `Enter` / `Space` | Fold / unfold a window |
@@ -63,8 +65,10 @@ Data flows once per ~2s tick: **tmux structure + sysinfo processes → model tre
 | `x` | `SIGKILL` the selected process |
 | `q` / `Ctrl-C` | Quit |
 
-Navigation is vim-style (`hjkl`, `g`/`G`); arrows/Home/End also work. `P`/`M`
-follow `top` conventions. Kills moved off `k` (now "up") to `t`/`x`.
+Navigation is vim-style (`hjkl`, `g`/`G`, `Ctrl-d`/`Ctrl-u`); arrows/Home/End/Page
+also work. Page scrolling uses the list height cached in `App::viewport` (set by
+the renderer). `P`/`M` follow `top` conventions. Kills moved off `k` (now "up")
+to `t`/`x`.
 
 ## Build / lint / run
 

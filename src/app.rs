@@ -1,5 +1,6 @@
 //! Application state: navigation, filtering, sorting and kill actions.
 
+use std::cell::Cell;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
@@ -44,6 +45,8 @@ pub struct App {
     pub status: Option<String>,
     status_ttl: u8,
     pub should_quit: bool,
+    /// Visible list height from the last render, used for page scrolling.
+    viewport: Cell<usize>,
 }
 
 impl App {
@@ -64,6 +67,7 @@ impl App {
             status: None,
             status_ttl: 0,
             should_quit: false,
+            viewport: Cell::new(20),
         })
     }
 
@@ -219,6 +223,14 @@ impl App {
             KeyCode::Char('q') => self.should_quit = true,
             KeyCode::Up | KeyCode::Char('k') => self.selected = self.selected.saturating_sub(1),
             KeyCode::Down | KeyCode::Char('j') => self.selected += 1,
+            KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.selected = self.selected.saturating_sub(self.half_page())
+            }
+            KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.selected += self.half_page()
+            }
+            KeyCode::PageUp => self.selected = self.selected.saturating_sub(self.viewport.get()),
+            KeyCode::PageDown => self.selected += self.viewport.get().max(1),
             KeyCode::Left | KeyCode::Char('h') | KeyCode::BackTab => self.prev_tab(),
             KeyCode::Right | KeyCode::Char('l') | KeyCode::Tab => self.next_tab(),
             KeyCode::Home | KeyCode::Char('g') => self.selected = 0,
@@ -242,6 +254,16 @@ impl App {
         if self.selected >= n {
             self.selected = n.saturating_sub(1);
         }
+    }
+
+    /// Record the visible list height (called by the renderer each frame) so
+    /// page scrolling can move by a real page.
+    pub fn set_viewport(&self, rows: usize) {
+        self.viewport.set(rows);
+    }
+
+    fn half_page(&self) -> usize {
+        (self.viewport.get() / 2).max(1)
     }
 
     fn next_tab(&mut self) {

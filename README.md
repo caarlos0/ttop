@@ -49,6 +49,8 @@ outside too).
 | Key | Action |
 | --- | --- |
 | `j` / `k`, `↓` / `↑` | Move selection |
+| `Ctrl-d` / `Ctrl-u` | Half-page down / up |
+| `PgDn` / `PgUp` | Page down / up |
 | `h` / `l`, `←` / `→`, `Tab` / `Shift-Tab` | Switch session tab |
 | `g` / `G`, `Home` / `End` | Jump to top / bottom |
 | `Enter` / `Space` | Fold / unfold a window |
@@ -59,8 +61,8 @@ outside too).
 | `x` | Send `SIGKILL` to the selected process |
 | `q` / `Ctrl-C` | Quit |
 
-Navigation is vim-style (`hjkl`, `g`/`G`); arrow/Home/End keys work too. Sort keys
-follow `top` conventions (`P` = CPU, `M` = memory).
+Navigation is vim-style (`hjkl`, `g`/`G`, `Ctrl-d`/`Ctrl-u`); arrow/Home/End/Page
+keys work too. Sort keys follow `top` conventions (`P` = CPU, `M` = memory).
 
 ## How it works
 

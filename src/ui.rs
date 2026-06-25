@@ -15,7 +15,7 @@ const DIM: Color = Color::Indexed(245);
 const DIM_SEL: Color = Color::Indexed(252);
 const SELECT_BG: Color = Color::Indexed(238);
 
-const HELP: &str = "j/k move · h/l session · g/G top/bottom · Enter fold · / filter · P cpu · M mem · t SIGTERM · x SIGKILL · q quit";
+const HELP: &str = "j/k move · ^u/^d page · g/G ends · h/l session · Enter fold · / filter · P cpu · M mem · t SIGTERM · x SIGKILL · q quit";
 
 pub fn draw(f: &mut Frame, app: &App) {
     let chunks = Layout::vertical([
@@ -60,6 +60,7 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
 
 fn draw_body(f: &mut Frame, app: &App, area: Rect) {
     let parts = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).split(area);
+    app.set_viewport(parts[1].height as usize);
 
     let sort_label = match app.sort {
         Sort::Cpu => "CPU",
