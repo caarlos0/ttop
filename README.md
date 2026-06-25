@@ -24,7 +24,8 @@ grouped by session and window — like `htop`, but scoped to your tmux.
 - Every tmux session is a **tab**; the session you're currently in is pre-selected.
 - Processes are grouped into a `window → processes` **tree** (a window's panes are
   folded together).
-- **Sort** by CPU or memory.
+- **Sort** by CPU or memory — orders both the processes and the windows
+  (busiest window first).
 - **Filter**, navigate, and **kill** processes without leaving the tree.
 
 ## Requirements

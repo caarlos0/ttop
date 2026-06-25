@@ -95,17 +95,20 @@ impl App {
         }
     }
 
-    /// Flatten the selected session into the visible rows: a header per window
-    /// followed by its processes laid out as a tree, honoring the active filter,
-    /// sort order and collapse state.
+    /// Flatten the selected session into the visible rows: one header per window
+    /// (busiest first, by the active sort metric) followed by its processes laid
+    /// out as a tree, honoring the active filter and collapse state.
     pub fn rows(&self) -> Vec<Row> {
-        let mut out = Vec::new();
         let Some(session) = self.sessions.get(self.selected_tab) else {
-            return out;
+            return Vec::new();
         };
         let needle = self.filter.to_lowercase();
         let filtering = !needle.is_empty();
         let sort = self.sort;
+
+        // Each window becomes a block of rows (its header plus tree) tagged with
+        // its total cpu/mem, so the windows themselves can be ordered by usage.
+        let mut blocks: Vec<(f32, u64, Vec<Row>)> = Vec::new();
 
         for w in &session.windows {
             let by_pid: HashMap<u32, &Proc> = w.procs.iter().map(|p| (p.pid, p)).collect();
@@ -168,7 +171,7 @@ impl App {
 
             let key = (session.name.clone(), w.index);
             let collapsed = !filtering && self.collapsed.contains(&key);
-            out.push(Row::Window {
+            let mut rows = vec![Row::Window {
                 key,
                 index: w.index,
                 name: w.name.clone(),
@@ -177,15 +180,20 @@ impl App {
                 count,
                 cpu,
                 mem,
-            });
+            }];
             if !collapsed {
                 let n = roots.len();
                 for (i, &r) in roots.iter().enumerate() {
-                    emit_tree(r, "", i + 1 == n, &children, &by_pid, &mut out);
+                    emit_tree(r, "", i + 1 == n, &children, &by_pid, &mut rows);
                 }
             }
+            blocks.push((cpu, mem, rows));
         }
-        out
+
+        // Order windows by total usage (stable, so equal-usage windows keep their
+        // tmux window-index order).
+        blocks.sort_by(|a, b| cmp_usage(sort, (a.0, a.1), (b.0, b.1)));
+        blocks.into_iter().flat_map(|(_, _, rows)| rows).collect()
     }
 
     pub fn on_key(&mut self, key: KeyEvent) {
@@ -309,20 +317,24 @@ fn short(cmd: &str) -> String {
     base.chars().take(40).collect()
 }
 
-/// Order two processes by the active sort metric, descending, breaking ties
+/// Order two cpu/mem usage pairs by the active metric, descending, breaking ties
 /// with the other metric.
-fn cmp_proc(sort: Sort, a: &Proc, b: &Proc) -> Ordering {
+fn cmp_usage(sort: Sort, a: (f32, u64), b: (f32, u64)) -> Ordering {
     match sort {
-        Sort::Cpu => b
-            .cpu
-            .partial_cmp(&a.cpu)
-            .unwrap_or(Ordering::Equal)
-            .then(b.mem.cmp(&a.mem)),
-        Sort::Mem => b
-            .mem
-            .cmp(&a.mem)
-            .then(b.cpu.partial_cmp(&a.cpu).unwrap_or(Ordering::Equal)),
+        Sort::Cpu => {
+            b.0.partial_cmp(&a.0)
+                .unwrap_or(Ordering::Equal)
+                .then(b.1.cmp(&a.1))
+        }
+        Sort::Mem => {
+            b.1.cmp(&a.1)
+                .then(b.0.partial_cmp(&a.0).unwrap_or(Ordering::Equal))
+        }
     }
+}
+
+fn cmp_proc(sort: Sort, a: &Proc, b: &Proc) -> Ordering {
+    cmp_usage(sort, (a.cpu, a.mem), (b.cpu, b.mem))
 }
 
 /// Depth-first walk that emits a process and its children as tree rows,
