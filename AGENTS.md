@@ -99,6 +99,27 @@ tests via `cargo test`), and remove them afterward unless they're worth keeping.
 - Login shells appear as `-fish` etc.; this is expected (they really are pane
   processes).
 
+## CI & release
+
+GitHub Actions live in [`.github/workflows`](.github/workflows):
+
+- **build.yml** — on push to `main` and PRs: `fmt --check`, `clippy -D warnings`,
+  `build`, `test` on a `ubuntu-latest` + `macos-latest` matrix.
+- **snapshot.yml** — on push to `main` and same-repo PRs: `goreleaser release
+  --snapshot` on macOS (exercises the release build; skips sign/publish).
+- **release.yml** — on `v*` tags: full `goreleaser release` (archives, source,
+  SBOMs, cosign signature, npm, Homebrew cask, nfpms, macOS notarization, and a
+  build-provenance attestation).
+
+Releases are driven by [GoReleaser Pro](https://goreleaser.com) via
+`.goreleaser.yaml`. **Build targets are Linux and macOS only (amd64 + arm64) —
+no Windows.** Validate config changes with `goreleaser check` (it needs a git
+remote configured). Cut a release by pushing a `vX.Y.Z` tag.
+
+Required secrets: `GORELEASER_KEY`, `GH_PAT` (Homebrew tap push), the optional
+`MACOS_*` notarization set, and npm auth — the same ones the other caarlos0 repos
+use.
+
 ## Workflow
 
 - [Conventional Commits](https://www.conventionalcommits.org/) with scope when
