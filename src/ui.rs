@@ -33,6 +33,17 @@ pub fn draw(f: &mut Frame, app: &App) {
 }
 
 fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
+    let label = "Sessions: ";
+    let label_w = label.len() as u16;
+    let label_area = Rect::new(area.x, area.y, label_w.min(area.width), area.height);
+    f.render_widget(
+        Paragraph::new(Span::styled(
+            label,
+            Style::default().fg(DIM).add_modifier(Modifier::BOLD),
+        )),
+        label_area,
+    );
+
     let titles: Vec<Line> = app
         .sessions
         .iter()
@@ -53,9 +64,16 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
         .highlight_style(
             Style::default()
                 .fg(Color::White)
+                .bg(SELECT_BG)
                 .add_modifier(Modifier::BOLD),
         );
-    f.render_widget(tabs, area);
+    let tabs_area = Rect::new(
+        area.x + label_w,
+        area.y,
+        area.width.saturating_sub(label_w),
+        area.height,
+    );
+    f.render_widget(tabs, tabs_area);
 }
 
 fn draw_body(f: &mut Frame, app: &App, area: Rect) {
