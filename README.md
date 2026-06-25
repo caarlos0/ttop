@@ -1,7 +1,8 @@
 # ttop
 
-A tiny terminal UI that shows the processes running inside every **tmux** pane,
-grouped by session and window — like `htop`, but scoped to your tmux.
+A tiny terminal UI that lists the processes in every **tmux** pane — `htop`,
+scoped to your tmux. Sessions are tabs; each window's processes form a tree,
+sorted by CPU or memory (busiest first).
 
 ```
  Sessions:  ● dev │   infra │   notes
@@ -18,60 +19,27 @@ grouped by session and window — like `htop`, but scoped to your tmux.
  j/k move · ^u/^d page · g/G ends · h/l session · Enter fold · / filter · P cpu · M mem · t SIGTERM · x SIGKILL · q quit
 ```
 
-## Features
+## Run
 
-- Every tmux session is a **tab**; the session you're currently in is pre-selected.
-- Processes are grouped into a `window → processes` **tree** (a window's panes are
-  folded together).
-- **Sort** by CPU or memory — orders both the processes and the windows
-  (busiest window first).
-- **Filter**, navigate, and **kill** processes without leaving the tree.
-
-## Requirements
-
-- `tmux` on your `PATH` (ttop reads the running server).
-- A Rust toolchain to build.
-
-## Install & run
+Needs `tmux` and a Rust toolchain.
 
 ```sh
-cargo run --release
-# or install it onto your PATH:
-cargo install --path .
-ttop
+cargo run --release      # or: cargo install --path . && ttop
 ```
 
-Run it from inside tmux so the current session is highlighted (it works from
-outside too).
+## Keys
 
-## Keybindings
+Vim-style; arrows, `Home`/`End` and `PageUp`/`PageDown` work too.
 
 | Key | Action |
 | --- | --- |
-| `j` / `k`, `↓` / `↑` | Move selection |
-| `Ctrl-d` / `Ctrl-u` | Half-page down / up |
-| `PgDn` / `PgUp` | Page down / up |
-| `h` / `l`, `←` / `→`, `Tab` / `Shift-Tab` | Switch session tab |
-| `g` / `G`, `Home` / `End` | Jump to top / bottom |
-| `Enter` / `Space` | Fold / unfold a window |
-| `/` | Filter by command or PID — `Enter` applies, `Esc` clears |
-| `P` | Sort by CPU |
-| `M` | Sort by memory |
-| `t` | Send `SIGTERM` to the selected process |
-| `x` | Send `SIGKILL` to the selected process |
-| `q` / `Ctrl-C` | Quit |
+| `j` / `k` | move (`Ctrl-d`/`Ctrl-u` half-page, `g`/`G` top/bottom) |
+| `h` / `l`, `Tab` | switch session |
+| `Enter` | fold / unfold window |
+| `/` | filter by command or PID |
+| `P` / `M` | sort by CPU / memory |
+| `t` / `x` | SIGTERM / SIGKILL the selected process |
+| `q` | quit |
 
-Navigation is vim-style (`hjkl`, `g`/`G`, `Ctrl-d`/`Ctrl-u`); arrow/Home/End/Page
-keys work too. Sort keys follow `top` conventions (`P` = CPU, `M` = memory).
-
-## How it works
-
-- `tmux list-panes -a` provides the session/window/pane layout and each pane's
-  root PID.
-- [`sysinfo`](https://crates.io/crates/sysinfo) supplies per-process CPU%,
-  memory and parent PID; every process is attached to the window of its nearest
-  pane-root ancestor.
-- The view refreshes every couple of seconds.
-
-CPU percentages are computed from the delta between refreshes, so the first
-frame reads ~0%. On multi-core machines a busy process can exceed 100%.
+CPU% is sampled between ~2s refreshes — the first frame reads ~0%, and a busy
+process can exceed 100% on multiple cores.
