@@ -4,23 +4,25 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs};
+use ratatui::widgets::{List, ListItem, ListState, Paragraph, Tabs};
 
 use crate::app::{App, Row, Sort};
 
-const HELP: &str = " ↑↓ move · ←→/Tab session · Enter fold · / filter · P cpu · M mem · k SIGTERM · x SIGKILL · q quit";
+const HELP: &str = "↑↓ move · ←→/Tab session · Enter fold · / filter · P cpu · M mem · k SIGTERM · x SIGKILL · q quit";
 
 pub fn draw(f: &mut Frame, app: &App) {
     let chunks = Layout::vertical([
-        Constraint::Length(1),
-        Constraint::Min(0),
-        Constraint::Length(1),
+        Constraint::Length(1), // tabs
+        Constraint::Length(1), // spacer
+        Constraint::Min(0),    // body
+        Constraint::Length(1), // footer
     ])
+    .horizontal_margin(1)
     .split(f.area());
 
     draw_tabs(f, app, chunks[0]);
-    draw_body(f, app, chunks[1]);
-    draw_footer(f, app, chunks[2]);
+    draw_body(f, app, chunks[2]);
+    draw_footer(f, app, chunks[3]);
 }
 
 fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
@@ -46,24 +48,11 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
                 .fg(Color::White)
                 .add_modifier(Modifier::BOLD),
         );
-    // No border; inset one column so the tabs line up with the body's content.
-    let area = Rect::new(
-        area.x + 1,
-        area.y,
-        area.width.saturating_sub(1),
-        area.height,
-    );
     f.render_widget(tabs, area);
 }
 
 fn draw_body(f: &mut Frame, app: &App, area: Rect) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(" ttop · tmux process top ");
-    let inner = block.inner(area);
-    f.render_widget(block, area);
-
-    let parts = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).split(inner);
+    let parts = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).split(area);
 
     let sort_label = match app.sort {
         Sort::Cpu => "CPU",
@@ -172,7 +161,7 @@ fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
     let line = if app.filtering {
         Line::from(vec![
             Span::styled(
-                " /",
+                "/",
                 Style::default()
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
@@ -183,14 +172,14 @@ fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
         ])
     } else if let Some(status) = &app.status {
         Line::from(Span::styled(
-            format!(" {status}"),
+            status.to_string(),
             Style::default().fg(Color::Yellow),
         ))
     } else {
         let mut spans = Vec::new();
         if !app.filter.is_empty() {
             spans.push(Span::styled(
-                format!(" filter:{} ·", app.filter),
+                format!("filter:{} · ", app.filter),
                 Style::default().fg(Color::Yellow),
             ));
         }
