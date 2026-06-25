@@ -4,19 +4,18 @@ A tiny terminal UI that shows the processes running inside every **tmux** pane,
 grouped by session and window — like `htop`, but scoped to your tmux.
 
 ```
-┌ ttop · tmux process top ───────────────────────────────────────────────┐
-│ ● copilot-agent-runtime │   default │   s                              │
-└────────────────────────────────────────────────────────────────────────┘
-┌────────────────────────────────────────────────────────────────────────┐
-│      PID    CPU%       MEM  COMMAND   (sort: CPU ▼)                     │
-│▾ [4] ttop   8 proc · 21.1% · 457M                                       │
-│     8149    16.8      361M  node /Users/you/.bin/copilot --yolo         │
-│     3377     0.0        8M  -fish                                       │
-│▾ [3] slack-pr-size   8 proc · 0.1% · 310M                              │
-│    65143     0.1      232M  node /Users/you/.bin/copilot --yolo         │
-│    43225     0.0       33M  git show @                                  │
-└────────────────────────────────────────────────────────────────────────┘
- ↑↓ move · ←→/Tab session · Enter fold · / filter · P cpu · M mem · k SIGTERM · x SIGKILL · q quit
+ Sessions:  ● dev │   infra │   notes
+
+       PID    CPU%       MEM  COMMAND   (sort: CPU ▼)
+ ▾ [2] api   4 proc · 14.2% · 354M
+      5990     0.0        9M  └─ -fish
+      6021    13.7      320M     └─ node server.js
+      6044     0.5       21M        ├─ esbuild
+      6050     0.0        4M        └─ tsc --watch
+ ▾ [1] editor   2 proc · 1.8% · 89M
+      4775     0.0        9M  └─ -fish
+      4810     1.8       80M     └─ nvim
+ j/k move · ^u/^d page · g/G ends · h/l session · Enter fold · / filter · P cpu · M mem · t SIGTERM · x SIGKILL · q quit
 ```
 
 ## Features
