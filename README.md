@@ -1,10 +1,9 @@
 # ttop
 
-> `pstree` meets `top`, tmux-aware.
+> A tmux-aware process tree with `top`-style CPU/memory views.
 
-The live process tree running in every tmux pane — sessions as tabs, each
-window's processes nested by parent/child and ranked by CPU or memory
-(busiest first).
+Sessions are tabs, each window a process tree, sorted by CPU or memory
+(busiest first). Navigate, filter, and kill — from any pane.
 
 ```
  Sessions:  ● dev │   infra │   notes
