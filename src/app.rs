@@ -21,7 +21,6 @@ pub enum Sort {
 pub enum Row {
     Window {
         key: (String, u32),
-        index: u32,
         name: String,
         active: bool,
         collapsed: bool,
@@ -173,7 +172,6 @@ impl App {
             let collapsed = !filtering && self.collapsed.contains(&key);
             let mut rows = vec![Row::Window {
                 key,
-                index: w.index,
                 name: w.name.clone(),
                 active: w.active,
                 collapsed,

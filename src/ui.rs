@@ -132,14 +132,13 @@ fn render_row(row: &Row, width: usize, selected: bool) -> ListItem<'static> {
     let dim = Style::default().fg(if selected { DIM_SEL } else { DIM });
     match row {
         Row::Window {
-            index,
+            key: (_, index),
             name,
             active,
             collapsed,
             count,
             cpu,
             mem,
-            ..
         } => {
             let arrow = if *collapsed { "▸ " } else { "▾ " };
             let name_color = if *active { Color::Green } else { Color::Cyan };
