@@ -319,17 +319,15 @@ fn short(cmd: &str) -> String {
 
 /// Order two cpu/mem usage pairs by the active metric, descending, breaking ties
 /// with the other metric.
-fn cmp_usage(sort: Sort, a: (f32, u64), b: (f32, u64)) -> Ordering {
+fn cmp_usage(sort: Sort, (a_cpu, a_mem): (f32, u64), (b_cpu, b_mem): (f32, u64)) -> Ordering {
     match sort {
-        Sort::Cpu => {
-            b.0.partial_cmp(&a.0)
-                .unwrap_or(Ordering::Equal)
-                .then(b.1.cmp(&a.1))
-        }
-        Sort::Mem => {
-            b.1.cmp(&a.1)
-                .then(b.0.partial_cmp(&a.0).unwrap_or(Ordering::Equal))
-        }
+        Sort::Cpu => b_cpu
+            .partial_cmp(&a_cpu)
+            .unwrap_or(Ordering::Equal)
+            .then(b_mem.cmp(&a_mem)),
+        Sort::Mem => b_mem
+            .cmp(&a_mem)
+            .then(b_cpu.partial_cmp(&a_cpu).unwrap_or(Ordering::Equal)),
     }
 }
 

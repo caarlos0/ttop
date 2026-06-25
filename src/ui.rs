@@ -176,30 +176,20 @@ fn render_row(row: &Row, width: usize, selected: bool) -> ListItem<'static> {
 
 fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
     let dim = Style::default().fg(DIM);
+    let yellow = Style::default().fg(Color::Yellow);
     let line = if app.filtering {
         Line::from(vec![
-            Span::styled(
-                "/",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
+            Span::styled("/", yellow.add_modifier(Modifier::BOLD)),
             Span::raw(app.filter.as_str()),
-            Span::styled("▏", Style::default().fg(Color::Yellow)),
+            Span::styled("▏", yellow),
             Span::styled("   Enter: apply · Esc: clear", dim),
         ])
     } else if let Some(status) = &app.status {
-        Line::from(Span::styled(
-            status.to_string(),
-            Style::default().fg(Color::Yellow),
-        ))
+        Line::from(Span::styled(status.as_str(), yellow))
     } else {
         let mut spans = Vec::new();
         if !app.filter.is_empty() {
-            spans.push(Span::styled(
-                format!("filter:{} · ", app.filter),
-                Style::default().fg(Color::Yellow),
-            ));
+            spans.push(Span::styled(format!("filter:{} · ", app.filter), yellow));
         }
         spans.push(Span::styled(HELP, dim));
         Line::from(spans)
