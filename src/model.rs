@@ -10,6 +10,7 @@ use crate::tmux::TmuxInfo;
 #[derive(Clone)]
 pub struct Proc {
     pub pid: u32,
+    pub ppid: u32,
     pub cpu: f32,
     pub mem: u64,
     pub command: String,
@@ -114,6 +115,7 @@ pub fn build_sessions(collector: &Collector, info: &TmuxInfo) -> Vec<Session> {
         if let Some(key) = found {
             buckets.entry(key).or_default().push(Proc {
                 pid: pid.as_u32(),
+                ppid: proc_.parent().map(|p| p.as_u32()).unwrap_or(0),
                 cpu: proc_.cpu_usage(),
                 mem: proc_.memory(),
                 command: command_string(proc_),

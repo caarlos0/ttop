@@ -1,7 +1,7 @@
 //! Application state: navigation, filtering, sorting and kill actions.
 
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use sysinfo::Signal;
@@ -28,7 +28,8 @@ pub enum Row {
         cpu: f32,
         mem: u64,
     },
-    Proc(Proc),
+    /// A process. `prefix` holds the rendered tree branch (e.g. `"│  └─ "`).
+    Proc { proc: Proc, prefix: String },
 }
 
 pub struct App {
@@ -90,8 +91,9 @@ impl App {
         }
     }
 
-    /// Flatten the selected session into the rows that are currently visible,
-    /// applying the active filter, sort order and collapse state.
+    /// Flatten the selected session into the visible rows: a header per window
+    /// followed by its processes laid out as a tree, honoring the active filter,
+    /// sort order and collapse state.
     pub fn rows(&self) -> Vec<Row> {
         let mut out = Vec::new();
         let Some(session) = self.sessions.get(self.selected_tab) else {
@@ -99,51 +101,90 @@ impl App {
         };
         let needle = self.filter.to_lowercase();
         let filtering = !needle.is_empty();
+        let sort = self.sort;
 
         for w in &session.windows {
-            let mut procs: Vec<&Proc> = w
-                .procs
-                .iter()
-                .filter(|p| {
-                    !filtering
-                        || p.command.to_lowercase().contains(&needle)
-                        || p.pid.to_string().contains(&needle)
-                })
-                .collect();
-            if filtering && procs.is_empty() {
-                continue;
+            let by_pid: HashMap<u32, &Proc> = w.procs.iter().map(|p| (p.pid, p)).collect();
+
+            // When filtering, keep matching processes plus all their ancestors so
+            // each match is still shown inside its branch of the tree.
+            let keep: Option<HashSet<u32>> = if filtering {
+                let mut keep = HashSet::new();
+                for p in &w.procs {
+                    let hit = p.command.to_lowercase().contains(&needle)
+                        || p.pid.to_string().contains(&needle);
+                    if !hit {
+                        continue;
+                    }
+                    let mut cur = Some(p.pid);
+                    while let Some(pid) = cur {
+                        if !keep.insert(pid) {
+                            break;
+                        }
+                        cur = by_pid
+                            .get(&pid)
+                            .map(|p| p.ppid)
+                            .filter(|ppid| by_pid.contains_key(ppid));
+                    }
+                }
+                if keep.is_empty() {
+                    continue;
+                }
+                Some(keep)
+            } else {
+                None
+            };
+            let included = |pid: u32| keep.as_ref().is_none_or(|k| k.contains(&pid));
+
+            // Build the parent -> children forest over the included processes.
+            // A process is a root when its parent isn't part of this window (i.e.
+            // it is one of the pane's top-level processes).
+            let mut children: HashMap<u32, Vec<u32>> = HashMap::new();
+            let mut roots: Vec<u32> = Vec::new();
+            for p in &w.procs {
+                if !included(p.pid) {
+                    continue;
+                }
+                if by_pid.contains_key(&p.ppid) && included(p.ppid) {
+                    children.entry(p.ppid).or_default().push(p.pid);
+                } else {
+                    roots.push(p.pid);
+                }
             }
-            match self.sort {
-                Sort::Cpu => procs.sort_by(|a, b| {
-                    b.cpu
-                        .partial_cmp(&a.cpu)
-                        .unwrap_or(Ordering::Equal)
-                        .then(b.mem.cmp(&a.mem))
-                }),
-                Sort::Mem => procs.sort_by(|a, b| {
-                    b.mem
-                        .cmp(&a.mem)
-                        .then(b.cpu.partial_cmp(&a.cpu).unwrap_or(Ordering::Equal))
-                }),
+            roots.sort_by(|a, b| cmp_proc(sort, by_pid[a], by_pid[b]));
+            for kids in children.values_mut() {
+                kids.sort_by(|a, b| cmp_proc(sort, by_pid[a], by_pid[b]));
             }
 
             let key = (session.name.clone(), w.index);
             let collapsed = !filtering && self.collapsed.contains(&key);
-            let cpu: f32 = procs.iter().map(|p| p.cpu).sum();
-            let mem: u64 = procs.iter().map(|p| p.mem).sum();
+            let cpu: f32 = w
+                .procs
+                .iter()
+                .filter(|p| included(p.pid))
+                .map(|p| p.cpu)
+                .sum();
+            let mem: u64 = w
+                .procs
+                .iter()
+                .filter(|p| included(p.pid))
+                .map(|p| p.mem)
+                .sum();
+            let count = w.procs.iter().filter(|p| included(p.pid)).count();
             out.push(Row::Window {
-                key: key.clone(),
+                key,
                 index: w.index,
                 name: w.name.clone(),
                 active: w.active,
                 collapsed,
-                count: procs.len(),
+                count,
                 cpu,
                 mem,
             });
             if !collapsed {
-                for p in procs {
-                    out.push(Row::Proc(p.clone()));
+                let n = roots.len();
+                for (i, &r) in roots.iter().enumerate() {
+                    emit_tree(r, "", i + 1 == n, &children, &by_pid, &mut out);
                 }
             }
         }
@@ -231,7 +272,7 @@ impl App {
     fn kill_selected(&mut self, sig: Signal, label: &str) {
         let rows = self.rows();
         let target = match rows.get(self.selected) {
-            Some(Row::Proc(p)) => Some((p.pid, short(&p.command))),
+            Some(Row::Proc { proc, .. }) => Some((proc.pid, short(&proc.command))),
             _ => None,
         };
         drop(rows);
@@ -254,4 +295,44 @@ fn short(cmd: &str) -> String {
     let first = cmd.split_whitespace().next().unwrap_or(cmd);
     let base = first.rsplit('/').next().unwrap_or(first);
     base.chars().take(40).collect()
+}
+
+/// Order two processes by the active sort metric, descending, breaking ties
+/// with the other metric.
+fn cmp_proc(sort: Sort, a: &Proc, b: &Proc) -> Ordering {
+    match sort {
+        Sort::Cpu => b
+            .cpu
+            .partial_cmp(&a.cpu)
+            .unwrap_or(Ordering::Equal)
+            .then(b.mem.cmp(&a.mem)),
+        Sort::Mem => b
+            .mem
+            .cmp(&a.mem)
+            .then(b.cpu.partial_cmp(&a.cpu).unwrap_or(Ordering::Equal)),
+    }
+}
+
+/// Depth-first walk that emits a process and its children as tree rows,
+/// building the `├─`/`└─`/`│` branch prefix as it descends.
+fn emit_tree(
+    pid: u32,
+    prefix: &str,
+    last: bool,
+    children: &HashMap<u32, Vec<u32>>,
+    by_pid: &HashMap<u32, &Proc>,
+    out: &mut Vec<Row>,
+) {
+    let branch = if last { "└─ " } else { "├─ " };
+    out.push(Row::Proc {
+        proc: by_pid[&pid].clone(),
+        prefix: format!("{prefix}{branch}"),
+    });
+    let child_prefix = format!("{prefix}{}", if last { "   " } else { "│  " });
+    if let Some(kids) = children.get(&pid) {
+        let n = kids.len();
+        for (i, &c) in kids.iter().enumerate() {
+            emit_tree(c, &child_prefix, i + 1 == n, children, by_pid, out);
+        }
+    }
 }

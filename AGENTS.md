@@ -34,7 +34,7 @@ Data flows once per ~2s tick: **tmux structure + sysinfo processes → model tre
 | `src/main.rs` | Entry point, terminal setup/teardown, event loop. `TICK = 2000ms`: redraw, poll a key (`event::poll`/`read`, Press only), dispatch to `App::on_key`, and `App::refresh()` every tick. |
 | `src/tmux.rs` | Shell out to `tmux` (`display-message`, `list-sessions`, `list-panes -a`). `query() -> TmuxInfo`. Structs: `Pane`, `TmuxInfo` (panes, session order, current session). Tab-separated `-F` format parsing. |
 | `src/model.rs` | `Collector` owns the `sysinfo::System` (so CPU% is computed across refreshes). `build_sessions(&Collector, &TmuxInfo) -> Vec<Session>`. Structs: `Proc`, `Window`, `Session`. Each process is attached to the window of its **nearest pane-root ancestor** (walk parent chain until a `pane_pid` is hit). `command_string` joins argv, falling back to the process name. |
-| `src/app.rs` | All state and logic. `App` (sessions, selected tab, sort, collapsed set, filter, selection, status), `Sort` (`Cpu`/`Mem`), `Row` (`Window`/`Proc`). `rows()` flattens the selected session into visible rows applying filter + sort + collapse. `on_key` holds the **keybinding map**. Actions: tab switch, fold, filter input, `kill_selected`. |
+| `src/app.rs` | All state and logic. `App` (sessions, selected tab, sort, collapsed set, filter, selection, status), `Sort` (`Cpu`/`Mem`), `Row` (`Window`/`Proc`, where `Proc` carries a rendered tree `prefix`). `rows()` builds, per window, a parent→child process **tree** (`cmp_proc` sorts siblings, `emit_tree` draws the `├─`/`└─`/`│` branches) and flattens it to visible rows. `on_key` holds the **keybinding map**. Actions: tab switch, fold, filter input, `kill_selected`. |
 | `src/ui.rs` | Pure rendering: `draw(&mut Frame, &App)`. Tabs (current session marked `●`, pre-selected), a bordered body with a column header + the tree `List`, and a footer (help / filter input / transient status). Helpers: `format_bytes`, `truncate`, `cpu_style`, `mem_style`. |
 
 ### Conventions in this codebase
@@ -42,8 +42,10 @@ Data flows once per ~2s tick: **tmux structure + sysinfo processes → model tre
 - The selection model is index-based into the `Vec<Row>` returned by
   `App::rows()`; `clamp()` keeps it in range after any change. `rows()` is the
   single source of truth shared by navigation, actions, and rendering.
-- Sorting/filtering/collapsing live in `rows()`, not in `model`. The model emits
-  unsorted, unfiltered data.
+- Sorting, filtering, collapsing and **tree building** live in `rows()`, not in
+  `model`. The model emits a flat, unsorted list of processes (with `ppid`);
+  `rows()` reconstructs the per-window tree. Filtering keeps matches **and their
+  ancestors** so a match is still shown within its branch.
 - Comment sparingly — only where intent isn't obvious (see existing doc comments).
 
 ## Keybindings (also shown in the footer)

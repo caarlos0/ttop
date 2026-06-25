@@ -138,9 +138,10 @@ fn render_row(row: &Row, width: usize) -> ListItem<'static> {
             ]);
             ListItem::new(line)
         }
-        Row::Proc(p) => {
-            let prefix_len = 2 + 7 + 2 + 6 + 2 + 8 + 2;
-            let max_cmd = width.saturating_sub(prefix_len).max(4);
+        Row::Proc { proc: p, prefix } => {
+            let cols = 2 + 7 + 2 + 6 + 2 + 8 + 2;
+            let avail = width.saturating_sub(cols).max(4);
+            let max_cmd = avail.saturating_sub(prefix.chars().count()).max(4);
             let line = Line::from(vec![
                 Span::raw("  "),
                 Span::styled(
@@ -152,6 +153,7 @@ fn render_row(row: &Row, width: usize) -> ListItem<'static> {
                 Span::raw("  "),
                 Span::styled(format!("{:>8}", format_bytes(p.mem)), mem_style(p.mem)),
                 Span::raw("  "),
+                Span::styled(prefix.clone(), Style::default().fg(Color::DarkGray)),
                 Span::raw(truncate(&p.command, max_cmd)),
             ]);
             ListItem::new(line)
