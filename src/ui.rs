@@ -12,7 +12,7 @@ const HELP: &str = " ↑↓ move · ←→/Tab session · Enter fold · / filter
 
 pub fn draw(f: &mut Frame, app: &App) {
     let chunks = Layout::vertical([
-        Constraint::Length(3),
+        Constraint::Length(1),
         Constraint::Min(0),
         Constraint::Length(1),
     ])
@@ -40,17 +40,26 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
         .collect();
     let tabs = Tabs::new(titles)
         .select(app.selected_tab)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(" ttop · tmux process top "),
-        )
-        .highlight_style(Style::default().add_modifier(Modifier::REVERSED | Modifier::BOLD));
+        .style(Style::default().fg(Color::DarkGray))
+        .highlight_style(
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        );
+    // No border; inset one column so the tabs line up with the body's content.
+    let area = Rect::new(
+        area.x + 1,
+        area.y,
+        area.width.saturating_sub(1),
+        area.height,
+    );
     f.render_widget(tabs, area);
 }
 
 fn draw_body(f: &mut Frame, app: &App, area: Rect) {
-    let block = Block::default().borders(Borders::ALL);
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" ttop · tmux process top ");
     let inner = block.inner(area);
     f.render_widget(block, area);
 
