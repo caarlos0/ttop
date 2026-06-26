@@ -20,13 +20,17 @@ Sessions are tabs, each window a process tree, sorted by CPU or memory
  j/k move · ^u/^d page · g/G ends · h/l session · Enter fold · / filter · P cpu · M mem · t SIGTERM · x SIGKILL · q quit
 ```
 
-## Run
-
-Needs `tmux` and a Rust toolchain.
+## Install
 
 ```sh
-cargo run --release      # or: cargo install --path . && ttop
+brew install --cask caarlos0/tap/ttop    # homebrew
+npm install -g @caarlos0/ttop            # npm
+npx @caarlos0/ttop                       # run without installing
+cargo install --path .                   # from source
 ```
+
+ttop reads your running **tmux** server, so run it from inside (or alongside)
+tmux.
 
 ## Keys
 
