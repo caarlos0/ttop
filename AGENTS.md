@@ -128,6 +128,15 @@ Releases are driven by [GoReleaser Pro](https://goreleaser.com) via
 no Windows.** Validate config changes with `goreleaser check` (it needs a git
 remote configured). Cut a release by pushing a `vX.Y.Z` tag.
 
+Two release-only gotchas, both handled in-repo:
+
+- `.gitignore` covers `dist/` and `.zig-cache/` (the `setup-zig` action caches
+  into the repo); otherwise GoReleaser aborts with "git is in a dirty state".
+- `.cargo/config.toml` adds `-Wl,-headerpad_max_install_names` on the darwin
+  targets. `cargo-zigbuild`'s linker leaves no Mach-O header room, so the
+  notarization step's `rcodesign` otherwise fails with "no room for a new loader
+  command". The flag is macOS-only, so Linux builds are unaffected.
+
 Required secrets: `GORELEASER_KEY`, `GH_PAT` (Homebrew tap push), the optional
 `MACOS_*` notarization set, and npm auth — the same ones the other caarlos0 repos
 use.

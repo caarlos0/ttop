@@ -1,0 +1,9 @@
+# cargo-zigbuild's linker leaves no spare room in the Mach-O header, so codesign
+# (rcodesign, during the macOS notarization step) fails with "no room for a new
+# loader command". Reserve header padding on the darwin targets so the code
+# signature load command fits. Scoped to macOS — the flag is an Apple ld option.
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-Wl,-headerpad_max_install_names"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-Wl,-headerpad_max_install_names"]
