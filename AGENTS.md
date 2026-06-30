@@ -46,6 +46,9 @@ Data flows once per ~2s tick: **tmux structure + sysinfo processes → model tre
   `model`. The model emits a flat, unsorted list of processes (with `ppid`);
   `rows()` reconstructs the per-window tree. Filtering keeps matches **and their
   ancestors** so a match is still shown within its branch.
+- Fold state is a `collapsed` set keyed by `(session, window index)`; absence
+  means expanded. `refresh()` keeps a fully-folded session folded: any window
+  that newly appears in it comes up collapsed too (`fully_collapsed`).
 - Comment sparingly — only where intent isn't obvious (see existing doc comments).
 
 ## Keybindings (also shown in the footer)

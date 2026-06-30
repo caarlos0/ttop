@@ -75,7 +75,22 @@ impl App {
         self.collector.refresh();
         if let Ok(info) = tmux::query() {
             let keep = self.sessions.get(self.selected_tab).map(|s| s.name.clone());
+            // Sessions the user had fully folded keep new windows folded too, so a
+            // freshly-opened window doesn't pop the whole tree back open.
+            let was_fully_collapsed: Vec<String> = self
+                .sessions
+                .iter()
+                .filter(|s| self.fully_collapsed(s))
+                .map(|s| s.name.clone())
+                .collect();
             self.sessions = model::build_sessions(&self.collector, &info);
+            for s in &self.sessions {
+                if was_fully_collapsed.contains(&s.name) {
+                    for w in &s.windows {
+                        self.collapsed.insert((s.name.clone(), w.index));
+                    }
+                }
+            }
             if let Some(name) = keep
                 && let Some(pos) = self.sessions.iter().position(|s| s.name == name)
             {
@@ -297,12 +312,12 @@ impl App {
         let Some(session) = self.sessions.get(self.selected_tab) else {
             return;
         };
+        let all_collapsed = self.fully_collapsed(session);
         let keys: Vec<(String, u32)> = session
             .windows
             .iter()
             .map(|w| (session.name.clone(), w.index))
             .collect();
-        let all_collapsed = keys.iter().all(|k| self.collapsed.contains(k));
         for k in keys {
             if all_collapsed {
                 self.collapsed.remove(&k);
@@ -310,6 +325,15 @@ impl App {
                 self.collapsed.insert(k);
             }
         }
+    }
+
+    /// Whether `session` has at least one window and all of them are folded.
+    fn fully_collapsed(&self, session: &Session) -> bool {
+        !session.windows.is_empty()
+            && session
+                .windows
+                .iter()
+                .all(|w| self.collapsed.contains(&(session.name.clone(), w.index)))
     }
 
     fn kill_selected(&mut self, sig: Signal, label: &str) {
