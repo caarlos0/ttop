@@ -6,7 +6,7 @@ Sessions are tabs, each window a process tree, sorted by CPU or memory
 (busiest first). Navigate, filter, and kill — from any pane.
 
 ```
- Sessions:  ● dev │   infra │   notes
+ Sessions:  dev*  infra  notes
 
        PID    CPU%       MEM  COMMAND   (sort: CPU ▼)
  ▾ [2] api   4 proc · 14.2% · 354M

@@ -50,16 +50,20 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
         .map(|s| {
             if s.current {
                 Line::from(vec![
-                    Span::styled("● ", Style::default().fg(Color::Green)),
+                    Span::raw(" "),
                     Span::raw(s.name.as_str()),
+                    Span::styled("*", Style::default().fg(Color::Green)),
+                    Span::raw(" "),
                 ])
             } else {
-                Line::from(format!("  {}", s.name))
+                Line::from(format!(" {} ", s.name))
             }
         })
         .collect();
     let tabs = Tabs::new(titles)
         .select(app.selected_tab)
+        .divider("")
+        .padding("", "")
         .style(Style::default().fg(DIM))
         .highlight_style(
             Style::default()
