@@ -140,9 +140,9 @@ Two release-only gotchas, both handled in-repo:
   notarization step's `rcodesign` otherwise fails with "no room for a new loader
   command". The flag is macOS-only, so Linux builds are unaffected.
 
-Required secrets: `GORELEASER_KEY`, `GH_PAT` (Homebrew tap push), the optional
-`MACOS_*` notarization set, and npm auth — the same ones the other caarlos0 repos
-use.
+Required secrets: `GORELEASER_KEY`, `APP_PRIVATE_KEY` (with the `APP_CLIENT_ID`
+repository variable, for Homebrew tap pushes), the optional `MACOS_*`
+notarization set, and npm auth.
 
 ## Workflow
 
